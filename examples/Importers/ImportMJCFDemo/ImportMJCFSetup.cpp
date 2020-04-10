@@ -17,6 +17,11 @@
 #include "BulletMJCFImporter.h"
 #include "../ImportURDFDemo/URDF2Bullet.h"
 
+#include "BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h"
+
+#include <iostream>
+#include <vector>
+
 class ImportMJCFSetup : public CommonMultiBodyBase
 {
 	char m_fileName[1024];
@@ -26,6 +31,12 @@ class ImportMJCFSetup : public CommonMultiBodyBase
 	btAlignedObjectArray<std::string*> m_nameMemory;
 	btScalar m_grav;
 	int m_upAxis;
+
+	FILE *file_trans;
+	int frameI;
+	std::vector<btVector3> lastTrans;
+	std::vector<btVector4> lastQuat;
+	double tol = 1e-4;
 
 public:
 	ImportMJCFSetup(struct GUIHelperInterface* helper, int option, const char* fileName);
@@ -112,12 +123,12 @@ ImportMJCFSetup::ImportMJCFSetup(struct GUIHelperInterface* helper, int option, 
 
 		if (gMCFJFileNameArray.size() == 0)
 		{
-			gMCFJFileNameArray.push_back("mjcf/humanoid.xml");
+			// gMCFJFileNameArray.push_back("mjcf/humanoid.xml");
 
-			gMCFJFileNameArray.push_back("MPL/MPL.xml");
+			// gMCFJFileNameArray.push_back("MPL/MPL.xml");
 
-			gMCFJFileNameArray.push_back("mjcf/inverted_pendulum.xml");
-			gMCFJFileNameArray.push_back("mjcf/ant.xml");
+			// gMCFJFileNameArray.push_back("mjcf/inverted_pendulum.xml");
+			// gMCFJFileNameArray.push_back("mjcf/ant.xml");
 			gMCFJFileNameArray.push_back("mjcf/hello_mjcf.xml");
 
 			gMCFJFileNameArray.push_back("mjcf/cylinder.xml");
@@ -143,6 +154,10 @@ ImportMJCFSetup::ImportMJCFSetup(struct GUIHelperInterface* helper, int option, 
 		}
 		sprintf(m_fileName, "%s", gMCFJFileNameArray[count++].c_str());
 	}
+
+	file_trans = fopen("test.txt", "w");
+	btAssert(file_trans);
+	frameI = 0;
 }
 
 ImportMJCFSetup::~ImportMJCFSetup()
@@ -153,6 +168,8 @@ ImportMJCFSetup::~ImportMJCFSetup()
 	}
 	m_nameMemory.clear();
 	delete m_data;
+
+	fclose(file_trans);
 }
 
 void ImportMJCFSetup::setFileName(const char* mjcfFileName)
@@ -190,6 +207,9 @@ void ImportMJCFSetup::initPhysics()
 	m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
 	m_dynamicsWorld->getDebugDrawer()->setDebugMode(
 		btIDebugDraw::DBG_DrawConstraints + btIDebugDraw::DBG_DrawContactPoints + btIDebugDraw::DBG_DrawAabb);  //+btIDebugDraw::DBG_DrawConstraintLimits);
+
+	btCollisionDispatcher * dispatcher = static_cast<btCollisionDispatcher *>(m_dynamicsWorld ->getDispatcher());
+	btGImpactCollisionAlgorithm::registerAlgorithm(dispatcher);
 
 	if (m_guiHelper->getParameterInterface())
 	{
@@ -362,8 +382,57 @@ void ImportMJCFSetup::stepSimulation(float deltaTime)
 			}
 		}
 
+		//print positions of all objects
+		bool converged = true;
+		if (lastTrans.empty()) {
+			lastTrans.resize(m_dynamicsWorld->getNumCollisionObjects());
+		}
+		if (lastQuat.empty()) {
+			lastQuat.resize(m_dynamicsWorld->getNumCollisionObjects());
+		}
+		for (int j = m_dynamicsWorld->getNumCollisionObjects() - 1; j >= 0; j--)
+		{
+			btCollisionObject* obj = m_dynamicsWorld->getCollisionObjectArray()[j];
+			btRigidBody* body = btRigidBody::upcast(obj);
+			btTransform trans;
+			if (body && body->getMotionState())
+			{
+				body->getMotionState()->getWorldTransform(trans);
+			}
+			else
+			{
+				trans = obj->getWorldTransform();
+			}
+			fprintf(file_trans, "%d %d\n%le %le %le\n%le %le %le %le\n", frameI, j, 
+				trans.getOrigin().getX(), trans.getOrigin().getY(), trans.getOrigin().getZ(),
+				trans.getRotation().getX(), trans.getRotation().getY(), trans.getRotation().getZ(), trans.getRotation().getW());
+			
+			if (!(frameI && std::abs(lastTrans[j][0] - trans.getOrigin().getX()) < tol &&
+				std::abs(lastTrans[j][1] - trans.getOrigin().getY()) < tol &&
+				std::abs(lastTrans[j][2] - trans.getOrigin().getZ()) < tol &&
+				std::abs(lastQuat[j][0] - trans.getRotation().getX()) < tol &&
+				std::abs(lastQuat[j][1] - trans.getRotation().getY()) < tol &&
+				std::abs(lastQuat[j][2] - trans.getRotation().getZ()) < tol &&
+				std::abs(lastQuat[j][3] - trans.getRotation().getW()) < tol))
+			{
+				converged = false;
+			}
+			lastTrans[j][0] = trans.getOrigin().getX();
+			lastTrans[j][1] = trans.getOrigin().getY();
+			lastTrans[j][2] = trans.getOrigin().getZ();
+			lastQuat[j][0] = trans.getRotation().getX();
+			lastQuat[j][1] = trans.getRotation().getY();
+			lastQuat[j][2] = trans.getRotation().getZ();
+			lastQuat[j][3] = trans.getRotation().getW();
+		}
+
+		if (converged) {
+			exit(0);
+		}
+		++frameI;
+
 		//the maximal coordinates/iterative MLCP solver requires a smallish timestep to converge
-		m_dynamicsWorld->stepSimulation(deltaTime, 10, 1. / 240.);
+		m_dynamicsWorld->stepSimulation(0.04, 1, 0.04);
 	}
 }
 

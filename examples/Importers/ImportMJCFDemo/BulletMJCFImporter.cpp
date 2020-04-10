@@ -4,6 +4,7 @@
 #include "Bullet3Common/b3HashMap.h"
 #include "LinearMath/btQuickprof.h"
 #include "BulletCollision/CollisionShapes/btShapeHull.h"
+#include "BulletCollision/Gimpact/btGImpactShape.h"
 #include "../../CommonInterfaces/CommonRenderInterface.h"
 #include "../../CommonInterfaces/CommonGUIHelperInterface.h"
 #include "../../CommonInterfaces/CommonFileIOInterface.h"
@@ -900,7 +901,7 @@ struct BulletMJCFImporterInternalData
 						handledGeomType = exists;
 
 						geom.m_meshScale.setValue(1, 1, 1);
-						//todo: parse mesh scale
+						//TODO: parse mesh scale
 						if (sz)
 						{
 						}
@@ -1019,7 +1020,7 @@ struct BulletMJCFImporterInternalData
 				}
 				case URDF_GEOM_MESH:
 				{
-					//todo (based on mesh bounding box?)
+					//TODO
 					break;
 				}
 				case URDF_GEOM_PLANE:
@@ -2385,19 +2386,20 @@ class btCompoundShape* BulletMJCFImporter::convertLinkCollisionShapes(int linkIn
 					{
 						case UrdfGeometry::FILE_OBJ:
 						{
-							if (col->m_flags & URDF_FORCE_CONCAVE_TRIMESH)
-							{
+							//TODO: convex decomposition
+							// if (col->m_flags & URDF_FORCE_CONCAVE_TRIMESH)
+							// {
 								glmesh = LoadMeshFromObj(col->m_geometry.m_meshFileName.c_str(), 0,m_data->m_fileIO);
-							}
-							else
-							{
-								std::vector<tinyobj::shape_t> shapes;
-								tinyobj::attrib_t attribute;
-								std::string err = tinyobj::LoadObj(attribute, shapes, col->m_geometry.m_meshFileName.c_str(), "", m_data->m_fileIO);
-								//create a convex hull for each shape, and store it in a btCompoundShape
+							// }
+							// else
+							// {
+							// 	std::vector<tinyobj::shape_t> shapes;
+							// 	tinyobj::attrib_t attribute;
+							// 	std::string err = tinyobj::LoadObj(attribute, shapes, col->m_geometry.m_meshFileName.c_str(), "", m_data->m_fileIO);
+							// 	//create a convex hull for each shape, and store it in a btCompoundShape
 
-								childShape = MjcfCreateConvexHullFromShapes(attribute, shapes, col->m_geometry.m_meshScale, m_data->m_globalDefaults.m_defaultCollisionMargin);
-							}
+							// 	childShape = MjcfCreateConvexHullFromShapes(attribute, shapes, col->m_geometry.m_meshScale, m_data->m_globalDefaults.m_defaultCollisionMargin);
+							// }
 							break;
 						}
 						case UrdfGeometry::FILE_STL:
@@ -2432,8 +2434,8 @@ class btCompoundShape* BulletMJCFImporter::convertLinkCollisionShapes(int linkIn
 								glmesh->m_vertices->at(i).xyzw[2] * col->m_geometry.m_meshScale[2]));
 						}
 
-						if (col->m_flags & URDF_FORCE_CONCAVE_TRIMESH)
-						{
+						// if (col->m_flags & URDF_FORCE_CONCAVE_TRIMESH)
+						// {
 							btTriangleMesh* meshInterface = new btTriangleMesh();
 							m_data->m_allocatedMeshInterfaces.push_back(meshInterface);
 
@@ -2447,17 +2449,19 @@ class btCompoundShape* BulletMJCFImporter::convertLinkCollisionShapes(int linkIn
 														   btVector3(v2[0], v2[1], v2[2]));
 							}
 
-							btBvhTriangleMeshShape* trimesh = new btBvhTriangleMeshShape(meshInterface, true, true);
+							// btBvhTriangleMeshShape* trimesh = new btBvhTriangleMeshShape(meshInterface, true, true);
+							btGImpactMeshShape* trimesh = new btGImpactMeshShape(meshInterface);
+							trimesh->updateBound();
 							childShape = trimesh;
-						}
-						else
-						{
-							btConvexHullShape* convexHull = new btConvexHullShape(&convertedVerts[0].getX(), convertedVerts.size(), sizeof(btVector3));
-							convexHull->optimizeConvexHull();
-							//convexHull->initializePolyhedralFeatures();
-							convexHull->setMargin(m_data->m_globalDefaults.m_defaultCollisionMargin);
-							childShape = convexHull;
-						}
+						// }
+						// else
+						// {
+						// 	btConvexHullShape* convexHull = new btConvexHullShape(&convertedVerts[0].getX(), convertedVerts.size(), sizeof(btVector3));
+						// 	convexHull->optimizeConvexHull();
+						// 	//convexHull->initializePolyhedralFeatures();
+						// 	convexHull->setMargin(m_data->m_globalDefaults.m_defaultCollisionMargin);
+						// 	childShape = convexHull;
+						// }
 					}
 
 					delete glmesh;
