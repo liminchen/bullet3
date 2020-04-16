@@ -900,6 +900,24 @@ struct BulletMJCFImporterInternalData
 							&geom.m_meshFileType);
 						handledGeomType = exists;
 
+						// read mesh and compute volume
+						//NOTE: this requires a redundant load, 
+						// but it is indeed difficult to find where the loaded meshes are in computeVolume() function
+						// given the complicated structure of the program...
+						GLInstanceGraphicsShape* glmesh = LoadMeshFromObj(geom.m_meshFileName.c_str(), 0, m_fileIO);
+						geom.m_meshVolume = 0.0;
+						for (int i = 0; i < glmesh->m_numIndices / 3; i++) {
+							float* v0 = glmesh->m_vertices->at(glmesh->m_indices->at(i * 3)).xyzw;
+							float* v1 = glmesh->m_vertices->at(glmesh->m_indices->at(i * 3 + 1)).xyzw;
+							float* v2 = glmesh->m_vertices->at(glmesh->m_indices->at(i * 3 + 2)).xyzw;
+							btVector3 p0(v0[0], v0[1], v0[2]);
+							btVector3 p1(v1[0], v1[1], v1[2]);
+							btVector3 p2(v2[0], v2[1], v2[2]);
+							geom.m_meshVolume += p0.dot(p1.cross(p2)) / 6.0;
+						}
+						geom.m_meshVolume = fabs(geom.m_meshVolume);
+						delete glmesh;
+
 						geom.m_meshScale.setValue(1, 1, 1);
 						//TODO: parse mesh scale
 						if (sz)
@@ -1020,7 +1038,7 @@ struct BulletMJCFImporterInternalData
 				}
 				case URDF_GEOM_MESH:
 				{
-					//TODO
+					totalVolume += col->m_geometry.m_meshVolume;
 					break;
 				}
 				case URDF_GEOM_PLANE:

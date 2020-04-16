@@ -93,7 +93,7 @@ struct UrdfGeometry
 	btArray<btVector3> m_uvs;
 	btArray<btVector3> m_normals;
 	btArray<int> m_indices;
-
+	double m_meshVolume;
 
 	UrdfMaterial m_localMaterial;
 	bool m_hasLocalMaterial;

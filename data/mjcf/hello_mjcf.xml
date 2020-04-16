@@ -7,11 +7,9 @@
     <worldbody>
         <body pos="-0 0 3" quat="0.800103 0.46194 -0.331414 -0.191342">
             <geom mesh="spot" type="mesh"/>
-            <inertial mass="1000"/>
         </body>
         <body pos="-0 0 1" quat="0.800103 0.46194 -0.331414 -0.191342">
             <geom mesh="spot" type="mesh"/>
-            <inertial mass="1000"/>
         </body>
         <body pos="-0 0 -1" quat="0 0 0.707107 0.707107">
             <geom mesh="plane" type="mesh"/>
