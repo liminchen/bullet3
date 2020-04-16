@@ -426,7 +426,7 @@ void ImportMJCFSetup::stepSimulation(float deltaTime)
 			lastQuat[j][3] = trans.getRotation().getW();
 		}
 
-		if (converged) {
+		if (converged || frameI > 200) {
 			exit(0);
 		}
 		++frameI;
