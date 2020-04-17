@@ -926,6 +926,7 @@ struct BulletMJCFImporterInternalData
 							std::string sizeStr = sz;
 							bool lastThree = false;
 							parseVector3(geom.m_meshScale, sizeStr, logger, lastThree);
+							geom.m_meshVolume *= geom.m_meshScale[0] * geom.m_meshScale[1] * geom.m_meshScale[2];
 						}
 					}
 				}
