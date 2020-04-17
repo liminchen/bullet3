@@ -33,10 +33,11 @@ class ImportMJCFSetup : public CommonMultiBodyBase
 	int m_upAxis;
 
 	FILE *file_trans;
-	int frameI;
+	int frameI, tsI;
 	std::vector<btVector3> lastTrans;
 	std::vector<btVector4> lastQuat;
-	double tol = 1e-4;
+	double simTime = 10, frameDt = 0.04, dt = 0.001;
+	double tol = 1e-3 * dt;
 
 public:
 	ImportMJCFSetup(struct GUIHelperInterface* helper, int option, const char* fileName);
@@ -157,7 +158,7 @@ ImportMJCFSetup::ImportMJCFSetup(struct GUIHelperInterface* helper, int option, 
 
 	file_trans = fopen("test.txt", "w");
 	btAssert(file_trans);
-	frameI = 0;
+	frameI = tsI = 0;
 }
 
 ImportMJCFSetup::~ImportMJCFSetup()
@@ -390,6 +391,7 @@ void ImportMJCFSetup::stepSimulation(float deltaTime)
 		if (lastQuat.empty()) {
 			lastQuat.resize(m_dynamicsWorld->getNumCollisionObjects());
 		}
+		bool exportedFrame = false;
 		for (int j = m_dynamicsWorld->getNumCollisionObjects() - 1; j >= 0; j--)
 		{
 			btCollisionObject* obj = m_dynamicsWorld->getCollisionObjectArray()[j];
@@ -403,9 +405,12 @@ void ImportMJCFSetup::stepSimulation(float deltaTime)
 			{
 				trans = obj->getWorldTransform();
 			}
-			fprintf(file_trans, "%d %d\n%le %le %le\n%le %le %le %le\n", frameI, j, 
-				trans.getOrigin().getX(), trans.getOrigin().getY(), trans.getOrigin().getZ(),
-				trans.getRotation().getX(), trans.getRotation().getY(), trans.getRotation().getZ(), trans.getRotation().getW());
+			if (frameI + 1 < (dt * tsI) / frameDt) {
+				fprintf(file_trans, "%d %d\n%le %le %le\n%le %le %le %le\n", frameI, j, 
+					trans.getOrigin().getX(), trans.getOrigin().getY(), trans.getOrigin().getZ(),
+					trans.getRotation().getX(), trans.getRotation().getY(), trans.getRotation().getZ(), trans.getRotation().getW());
+				exportedFrame = true;
+			}
 			
 			if (!(frameI && std::abs(lastTrans[j][0] - trans.getOrigin().getX()) < tol &&
 				std::abs(lastTrans[j][1] - trans.getOrigin().getY()) < tol &&
@@ -426,13 +431,16 @@ void ImportMJCFSetup::stepSimulation(float deltaTime)
 			lastQuat[j][3] = trans.getRotation().getW();
 		}
 
-		if (converged || frameI > 200) {
+		if (exportedFrame) {
+			++frameI;
+		}
+		if (converged || frameI > (simTime / frameDt)) {
 			exit(0);
 		}
-		++frameI;
+		++tsI;
 
 		//the maximal coordinates/iterative MLCP solver requires a smallish timestep to converge
-		m_dynamicsWorld->stepSimulation(0.04, 1, 0.04);
+		m_dynamicsWorld->stepSimulation(dt, 0, dt);
 	}
 }
 
