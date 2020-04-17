@@ -922,6 +922,10 @@ struct BulletMJCFImporterInternalData
 						//TODO: parse mesh scale
 						if (sz)
 						{
+							std::cout << "mesh size: " << sz << std::endl;
+							std::string sizeStr = sz;
+							bool lastThree = false;
+							parseVector3(geom.m_meshScale, sizeStr, logger, lastThree);
 						}
 					}
 				}
@@ -2462,9 +2466,9 @@ class btCompoundShape* BulletMJCFImporter::convertLinkCollisionShapes(int linkIn
 								float* v0 = glmesh->m_vertices->at(glmesh->m_indices->at(i * 3)).xyzw;
 								float* v1 = glmesh->m_vertices->at(glmesh->m_indices->at(i * 3 + 1)).xyzw;
 								float* v2 = glmesh->m_vertices->at(glmesh->m_indices->at(i * 3 + 2)).xyzw;
-								meshInterface->addTriangle(btVector3(v0[0], v0[1], v0[2]),
-														   btVector3(v1[0], v1[1], v1[2]),
-														   btVector3(v2[0], v2[1], v2[2]));
+								meshInterface->addTriangle(btVector3(v0[0] * col->m_geometry.m_meshScale[0], v0[1] * col->m_geometry.m_meshScale[1], v0[2] * col->m_geometry.m_meshScale[2]),
+														   btVector3(v1[0] * col->m_geometry.m_meshScale[0], v1[1] * col->m_geometry.m_meshScale[1], v1[2] * col->m_geometry.m_meshScale[2]),
+														   btVector3(v2[0] * col->m_geometry.m_meshScale[0], v2[1] * col->m_geometry.m_meshScale[1], v2[2] * col->m_geometry.m_meshScale[2]));
 							}
 
 							// btBvhTriangleMeshShape* trimesh = new btBvhTriangleMeshShape(meshInterface, true, true);
