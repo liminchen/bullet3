@@ -36,8 +36,8 @@ class ImportMJCFSetup : public CommonMultiBodyBase
 	int frameI, tsI;
 	std::vector<btVector3> lastTrans;
 	std::vector<btVector4> lastQuat;
-	double simTime = 10, frameDt = 0.04, dt = 0.001;
-	double tol = 1e-3 * dt;
+	double simTime = 10, frameDt = 0.04, dt = 0.04;
+	double tol = 1e-8 * dt;
 
 public:
 	ImportMJCFSetup(struct GUIHelperInterface* helper, int option, const char* fileName);

@@ -919,7 +919,6 @@ struct BulletMJCFImporterInternalData
 						delete glmesh;
 
 						geom.m_meshScale.setValue(1, 1, 1);
-						//TODO: parse mesh scale
 						if (sz)
 						{
 							std::cout << "mesh size: " << sz << std::endl;
