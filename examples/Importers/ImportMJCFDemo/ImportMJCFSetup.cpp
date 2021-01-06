@@ -36,8 +36,9 @@ class ImportMJCFSetup : public CommonMultiBodyBase
 	int frameI, tsI;
 	std::vector<btVector3> lastTrans;
 	std::vector<btVector4> lastQuat;
-	double simTime = 10, frameDt = 0.04, dt = 0.04;
+	double simTime = 10, frameDt = 0.04, dt = 0.01;
 	double tol = 1e-8 * dt;
+	clock_t clock_begin;
 
 public:
 	ImportMJCFSetup(struct GUIHelperInterface* helper, int option, const char* fileName);
@@ -159,6 +160,7 @@ ImportMJCFSetup::ImportMJCFSetup(struct GUIHelperInterface* helper, int option, 
 	file_trans = fopen("test.txt", "w");
 	btAssert(file_trans);
 	frameI = tsI = 0;
+	clock_begin = clock();
 }
 
 ImportMJCFSetup::~ImportMJCFSetup()
@@ -433,8 +435,10 @@ void ImportMJCFSetup::stepSimulation(float deltaTime)
 
 		if (exportedFrame) {
 			++frameI;
+			printf("frame%d done!\n", frameI);
 		}
 		if (converged || frameI > (simTime / frameDt)) {
+			fprintf(file_trans, "-1 %d\n", (clock() - clock_begin) / CLOCKS_PER_SEC);
 			exit(0);
 		}
 		++tsI;

@@ -1163,6 +1163,8 @@ struct BulletMJCFImporterInternalData
 		jointTrans.setIdentity();
 		bool skipFixedJoint = false;
 
+		double density = 1000;
+
 		for (XMLElement* xml = link_xml->FirstChildElement(); xml; xml = xml->NextSiblingElement())
 		{
 			bool handled = false;
@@ -1270,6 +1272,11 @@ struct BulletMJCFImporterInternalData
 				}
 				handled = true;
 			}
+			if (n == "IPC") {
+				const char* densityStr = xml->Attribute("density");
+				density = std::stod(densityStr);
+				handled = true;
+			}
 
 			//recursive
 			if (n == "body")
@@ -1315,8 +1322,8 @@ struct BulletMJCFImporterInternalData
 		//check mass/inertia
 		if (!massDefined)
 		{
-			double density = 1000;
 			double volume = computeVolume(linkPtr, logger);
+			printf("density = %le\n", density);
 			mass = density * volume;
 		}
 		linkPtr->m_inertia.m_linkLocalFrame = localInertialFrame;  // = jointTrans.inverse();
