@@ -450,7 +450,8 @@ struct BulletMJCFImporterInternalData
 				//				modelPtr->m_rootLinks.push_back(linkPtr);
 
 				btVector3 inertialShift(0, 0, 0);
-				parseGeom(defaults, rootxml, modelIndex, linkIndex, logger, inertialShift);
+				double density;
+				parseGeom(defaults, rootxml, modelIndex, linkIndex, logger, inertialShift, density);
 				initTreeAndRoot(*modelPtr, logger);
 
 				handled = true;
@@ -648,7 +649,7 @@ struct BulletMJCFImporterInternalData
 		*/
 		return false;
 	}
-	bool parseGeom(MyMJCFDefaults& defaults, XMLElement* link_xml, int modelIndex, int linkIndex, MJCFErrorLogger* logger, btVector3& inertialShift)
+	bool parseGeom(MyMJCFDefaults& defaults, XMLElement* link_xml, int modelIndex, int linkIndex, MJCFErrorLogger* logger, btVector3& inertialShift, double& density)
 	{
 		UrdfLink** linkPtrPtr = m_models[modelIndex]->m_links.getAtIndex(linkIndex);
 		if (linkPtrPtr == 0)
@@ -977,6 +978,11 @@ struct BulletMJCFImporterInternalData
 			logger->reportWarning((sourceFileLocation(link_xml) + ": geom requires type").c_str());
 		}
 
+		const char* densityStr = link_xml->Attribute("density");
+		if (densityStr) {
+			density = std::stod(densityStr);
+		}
+
 		return handledGeomType;
 	}
 
@@ -1265,16 +1271,11 @@ struct BulletMJCFImporterInternalData
 			if (n == "geom")
 			{
 				btVector3 inertialShift(0, 0, 0);
-				parseGeom(curDefaults, xml, modelIndex, orgChildLinkIndex, logger, inertialShift);
+				parseGeom(curDefaults, xml, modelIndex, orgChildLinkIndex, logger, inertialShift, density);
 				if (!massDefined)
 				{
 					localInertialFrame.setOrigin(inertialShift);
 				}
-				handled = true;
-			}
-			if (n == "IPC") {
-				const char* densityStr = xml->Attribute("density");
-				density = std::stod(densityStr);
 				handled = true;
 			}
 
