@@ -914,7 +914,12 @@ struct BulletMJCFImporterInternalData
 							btVector3 p0(v0[0], v0[1], v0[2]);
 							btVector3 p1(v1[0], v1[1], v1[2]);
 							btVector3 p2(v2[0], v2[1], v2[2]);
-							geom.m_meshVolume += p0.dot(p1.cross(p2)) / 6.0;
+							double vol = p0.dot(p1.cross(p2)) / 6.0;
+							geom.m_meshVolume += vol;
+							inertialShift += vol * (p0 + p1 + p2) / 4.0;
+						}
+						if (geom.m_meshVolume) {
+							inertialShift /= geom.m_meshVolume;
 						}
 						geom.m_meshVolume = fabs(geom.m_meshVolume);
 						delete glmesh;
@@ -1275,6 +1280,7 @@ struct BulletMJCFImporterInternalData
 				if (!massDefined)
 				{
 					localInertialFrame.setOrigin(inertialShift);
+					printf("%le %le %le\n", inertialShift[0], inertialShift[1], inertialShift[2]);
 				}
 				handled = true;
 			}
